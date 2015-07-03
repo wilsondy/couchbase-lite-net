@@ -83,10 +83,10 @@ namespace Couchbase.Lite
             rev.SetProperties(revProperties);
 
             var revHistory = new List<string>();
-            revHistory.AddItem(rev.GetRevId());
-            revHistory.AddItem("3-thrice");
-            revHistory.AddItem("2-too");
-            revHistory.AddItem("1-won");
+            revHistory.Add(rev.GetRevId());
+            revHistory.Add("3-thrice");
+            revHistory.Add("2-too");
+            revHistory.Add("1-won");
             database.ForceInsert(rev, revHistory, null);
             Assert.AreEqual(1, database.DocumentCount);
 
@@ -99,11 +99,11 @@ namespace Couchbase.Lite
             conflict.SetProperties(conflictProperties);
             
             var conflictHistory = new List<string>();
-            conflictHistory.AddItem(conflict.GetRevId());
-            conflictHistory.AddItem("4-delta");
-            conflictHistory.AddItem("3-gamma");
-            conflictHistory.AddItem("2-too");
-            conflictHistory.AddItem("1-won");
+            conflictHistory.Add(conflict.GetRevId());
+            conflictHistory.Add("4-delta");
+            conflictHistory.Add("3-gamma");
+            conflictHistory.Add("2-too");
+            conflictHistory.Add("1-won");
             database.ForceInsert(conflict, conflictHistory, null);
             Assert.AreEqual(1, database.DocumentCount);
             VerifyHistory(database, conflict, conflictHistory);
@@ -114,7 +114,7 @@ namespace Couchbase.Lite
             otherProperties["language"] = "jp";
             other.SetProperties(otherProperties);
             var otherHistory = new List<string>();
-            otherHistory.AddItem(other.GetRevId());
+            otherHistory.Add(other.GetRevId());
             database.ForceInsert(other, otherHistory, null);
             
             // Fetch one of those phantom revisions with no body:
@@ -133,19 +133,19 @@ namespace Couchbase.Lite
             var options = new ChangesOptions();
             var changes = database.ChangesSince(0, options, null, null);
             var expectedChanges = new RevisionList();
-            expectedChanges.AddItem(conflict);
-            expectedChanges.AddItem(other);
+            expectedChanges.Add(conflict);
+            expectedChanges.Add(other);
             Assert.AreEqual(expectedChanges, changes);
             options.SetIncludeConflicts(true);
             changes = database.ChangesSince(0, options, null, null);
             expectedChanges = new RevisionList();
-            expectedChanges.AddItem(rev);
-            expectedChanges.AddItem(conflict);
-            expectedChanges.AddItem(other);
+            expectedChanges.Add(rev);
+            expectedChanges.Add(conflict);
+            expectedChanges.Add(other);
             var expectedChangesAlt = new RevisionList();
-            expectedChangesAlt.AddItem(conflict);
-            expectedChangesAlt.AddItem(rev);
-            expectedChangesAlt.AddItem(other);
+            expectedChangesAlt.Add(conflict);
+            expectedChangesAlt.Add(rev);
+            expectedChangesAlt.Add(other);
             Assert.IsTrue(expectedChanges.SequenceEqual(changes) || expectedChangesAlt.SequenceEqual(changes));
         }
 

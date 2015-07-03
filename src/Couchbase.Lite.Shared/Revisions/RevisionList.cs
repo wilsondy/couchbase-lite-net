@@ -80,7 +80,7 @@ namespace Couchbase.Lite
             while (iterator.MoveNext())
             {
                 RevisionInternal rev = iterator.Current;
-                result.AddItem(rev.GetDocId());
+                result.Add(rev.GetDocId());
             }
             return result;
         }
@@ -92,7 +92,7 @@ namespace Couchbase.Lite
             while (iterator.MoveNext())
             {
                 RevisionInternal rev = iterator.Current;
-                result.AddItem(rev.GetRevId());
+                result.Add(rev.GetRevId());
             }
             return result;
         }

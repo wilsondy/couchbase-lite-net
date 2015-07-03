@@ -198,7 +198,7 @@ namespace Couchbase.Lite
             var pathToDoc = new Uri(replicationUrlTrailing, docId);
             Log.D(Tag, "Send http request to " + pathToDoc);
 
-            var httpRequestDoneSignal = new CountDownLatch(1);
+            var httpRequestDoneSignal = new CountdownEvent(1);
             Task.Factory.StartNew(() =>
             {
                 var httpclient = new HttpClient();
@@ -235,10 +235,10 @@ namespace Couchbase.Lite
                     Assert.IsNull(e, "Got IOException: " + e.Message);
                 }
 
-                httpRequestDoneSignal.CountDown();
+                httpRequestDoneSignal.Signal();
             });
 
-            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(30));
+            var result = httpRequestDoneSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
         }
 
@@ -618,7 +618,7 @@ namespace Couchbase.Lite
             var replicationUrlTrailing = new Uri(string.Format ("{0}/", remote));
             var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
             Log.D(Tag, "Send http request to " + pathToDoc);
-            var httpRequestDoneSignal = new CountDownLatch(1);
+            var httpRequestDoneSignal = new CountdownEvent(1);
                 var httpclient = new HttpClient();
                 try
                 {
@@ -637,12 +637,12 @@ namespace Couchbase.Lite
                 }
                 finally
                 {
-                    httpRequestDoneSignal.CountDown();
+                    httpRequestDoneSignal.Signal();
                 }
             Log.D(Tag, "Waiting for http request to finish");
             try
             {
-                httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+                httpRequestDoneSignal.Wait(TimeSpan.FromSeconds(10));
                 Log.D(Tag, "http request finished");
             }
             catch (Exception e)
@@ -1132,8 +1132,8 @@ namespace Couchbase.Lite
             var replicator = database.CreatePullReplication(remote);
 
             var channels = new List<string>();
-            channels.AddItem("chan1");
-            channels.AddItem("chan2");
+            channels.Add("chan1");
+            channels.Add("chan2");
             replicator.Channels = channels;
             Assert.AreEqual(channels, replicator.Channels);
 
@@ -1926,7 +1926,7 @@ namespace Couchbase.Lite
                 Assert.IsNull(pusher.LastError);
             }
 
-            // workaround for the fact that the replicationDoneSignal.Await() call could unblock before all
+            // workaround for the fact that the replicationDoneSignal.Wait() call could unblock before all
             // the statements in Replication.Stopped() have even had a chance to execute.
             Thread.Sleep(500);
 

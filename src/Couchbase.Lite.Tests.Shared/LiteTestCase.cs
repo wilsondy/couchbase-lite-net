@@ -466,7 +466,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(attachmentName, attachment.Name);
 
             var attNames = new List<string>();
-            attNames.AddItem(attachmentName);
+            attNames.Add(attachmentName);
             Assert.AreEqual(rev3.AttachmentNames, attNames);
             Assert.AreEqual("text/plain; charset=utf-8", attachment.ContentType);
             Assert.AreEqual(Encoding.UTF8.GetString(attachment.Content.ToArray()), content);
@@ -558,9 +558,9 @@ namespace Couchbase.Lite
 
     internal class ReplicationStoppedObserver
     {
-        private readonly CountDownLatch doneSignal;
+        private readonly CountdownEvent doneSignal;
 
-        public ReplicationStoppedObserver(CountDownLatch doneSignal)
+        public ReplicationStoppedObserver(CountdownEvent doneSignal)
         {
             this.doneSignal = doneSignal;
         }
@@ -570,16 +570,16 @@ namespace Couchbase.Lite
             var replicator = args.Source;
             if (replicator.Status == ReplicationStatus.Stopped)
             {
-                doneSignal.CountDown();
+                doneSignal.Signal();
             }
         }
     }
 
     internal class ReplicationErrorObserver
     {
-        private readonly CountDownLatch doneSignal;
+        private readonly CountdownEvent doneSignal;
 
-        public ReplicationErrorObserver(CountDownLatch doneSignal)
+        public ReplicationErrorObserver(CountdownEvent doneSignal)
         {
             this.doneSignal = doneSignal;
         }
@@ -589,7 +589,7 @@ namespace Couchbase.Lite
             var replicator = args.Source;
             if (replicator.LastError != null)
             {
-                doneSignal.CountDown();
+                doneSignal.Signal();
             }
         }
     }

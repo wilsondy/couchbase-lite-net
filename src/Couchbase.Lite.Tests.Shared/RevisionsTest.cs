@@ -47,6 +47,7 @@ using Couchbase.Lite.Internal;
 using NUnit.Framework;
 using Sharpen;
 using System.Linq;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -125,14 +126,14 @@ namespace Couchbase.Lite
         public void TestMakeRevisionHistoryDict()
         {
             var revs = new List<RevisionInternal>();
-            revs.AddItem(Mkrev("4-jkl"));
-            revs.AddItem(Mkrev("3-ghi"));
-            revs.AddItem(Mkrev("2-def"));
+            revs.Add(Mkrev("4-jkl"));
+            revs.Add(Mkrev("3-ghi"));
+            revs.Add(Mkrev("2-def"));
 
             var expectedSuffixes = new List<string>();
-            expectedSuffixes.AddItem("jkl");
-            expectedSuffixes.AddItem("ghi");
-            expectedSuffixes.AddItem("def");
+            expectedSuffixes.Add("jkl");
+            expectedSuffixes.Add("ghi");
+            expectedSuffixes.Add("def");
 
             var expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["start"] = 4;
@@ -142,12 +143,12 @@ namespace Couchbase.Lite
             Assert.AreEqual(expectedHistoryDict, historyDict);
             
             revs = new List<RevisionInternal>();
-            revs.AddItem(Mkrev("4-jkl"));
-            revs.AddItem(Mkrev("2-def"));
+            revs.Add(Mkrev("4-jkl"));
+            revs.Add(Mkrev("2-def"));
             
             expectedSuffixes = new List<string>();
-            expectedSuffixes.AddItem("4-jkl");
-            expectedSuffixes.AddItem("2-def");
+            expectedSuffixes.Add("4-jkl");
+            expectedSuffixes.Add("2-def");
             
             expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["ids"] = expectedSuffixes;
@@ -155,12 +156,12 @@ namespace Couchbase.Lite
             Assert.AreEqual(expectedHistoryDict, historyDict);
 
             revs = new List<RevisionInternal>();
-            revs.AddItem(Mkrev("12345"));
-            revs.AddItem(Mkrev("6789"));
+            revs.Add(Mkrev("12345"));
+            revs.Add(Mkrev("6789"));
             
             expectedSuffixes = new List<string>();
-            expectedSuffixes.AddItem("12345");
-            expectedSuffixes.AddItem("6789");
+            expectedSuffixes.Add("12345");
+            expectedSuffixes.Add("6789");
             
             expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["ids"] = expectedSuffixes;
@@ -229,12 +230,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestDocumentChangeListener() {
             var doc = database.CreateDocument();
-            var counter = new CountDownLatch(1);
-            doc.Change += (sender, e) => counter.CountDown();
+            var counter = new CountdownEvent(1);
+            doc.Change += (sender, e) => counter.Signal();
 
             doc.CreateRevision().Save();
 
-            var success = counter.Await(TimeSpan.FromSeconds(5));
+            var success = counter.Wait(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success);
         }
 

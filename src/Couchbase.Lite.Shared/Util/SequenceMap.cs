@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Support
         {
             _lock.EnterWriteLock();
             sequences.AddItem(++lastSequence);
-            values.AddItem(value);
+            values.Add(value);
             _lock.ExitWriteLock();
             return lastSequence;
         }

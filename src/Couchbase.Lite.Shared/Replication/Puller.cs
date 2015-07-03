@@ -370,7 +370,7 @@ namespace Couchbase.Lite.Replicator
                             bulkRevsToPull = new List<RevisionInternal>(100);
                         }
 
-                        bulkRevsToPull.AddItem(rev);
+                        bulkRevsToPull.Add(rev);
                         ++numBulked;
                     } else {
                         QueueRemoteRevision(rev);
@@ -394,13 +394,13 @@ namespace Couchbase.Lite.Replicator
                     deletedRevsToPull = new List<RevisionInternal>(100);
                 }
 
-                deletedRevsToPull.AddItem(rev);
+                deletedRevsToPull.Add(rev);
             } else {
                 if (revsToPull == null) {
                     revsToPull = new List<RevisionInternal>(100);
                 }
 
-                revsToPull.AddItem(rev);
+                revsToPull.Add(rev);
             }
         }
 
@@ -445,7 +445,7 @@ namespace Couchbase.Lite.Replicator
                             }
                         }
 
-                        workToStartNow.AddItem(queue[0]);
+                        workToStartNow.Add(queue[0]);
                         queue.Remove(0);
                     }
                 }
@@ -573,7 +573,7 @@ namespace Couchbase.Lite.Replicator
                 rev = xformed;
 
                 var attachments = (IDictionary<string, IDictionary<string, object>>)rev.GetProperties().Get("_attachments");
-                foreach (var entry in attachments.EntrySet())
+                foreach (var entry in attachments)
                 {
                     var attachment = entry.Value;
                     attachment.Remove("file");

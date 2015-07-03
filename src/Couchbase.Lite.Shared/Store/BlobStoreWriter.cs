@@ -77,7 +77,7 @@ namespace Couchbase.Lite
 
         private MessageDigest md5Digest;
 
-        private BufferedOutputStream outStream;
+        private BufferedStream outStream;
 
         private FilePath tempFile;
 
@@ -117,7 +117,7 @@ namespace Couchbase.Lite
             string filename = string.Format("{0}.blobtmp", uuid);
             FilePath tempDir = store.TempDir();
             tempFile = new FilePath(tempDir, filename);
-            outStream = new BufferedOutputStream(new FileOutputStream(tempFile));
+            outStream = new BufferedStream(File.Open(tempFile.GetAbsolutePath(), FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite));
         }
 
         /// <summary>Appends data to the blob.</summary>
@@ -127,7 +127,7 @@ namespace Couchbase.Lite
             var dataVector = data.ToArray();
             try
             {
-                outStream.Write(dataVector);
+                outStream.Write(dataVector, 0, dataVector.Length);
             }
             catch (IOException e)
             {

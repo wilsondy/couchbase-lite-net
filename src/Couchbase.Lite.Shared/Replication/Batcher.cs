@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Support
                     int i = 0;
                     foreach (T item in inbox)
                     {
-                        toProcess.AddItem(item);
+                        toProcess.Add(item);
                         i++;
                         if (i >= capacity)
                         {

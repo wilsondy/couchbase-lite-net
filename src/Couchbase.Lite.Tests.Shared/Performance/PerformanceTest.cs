@@ -678,7 +678,7 @@ namespace Couchbase.Lite
                 var props = new Dictionary<string, object>();
                 props["name"] = name;
 
-                var doneSignal = new CountDownLatch(1);
+                var doneSignal = new CountdownEvent(1);
 
                 // Run a live query
                 var view = database.GetView("vu");
@@ -694,7 +694,7 @@ namespace Couchbase.Lite
                     var count = rows.Count;
                     if (count == numDocs)
                     {
-                        doneSignal.CountDown();
+                        doneSignal.Signal();
                     }
                 };
                 liveQuery.Start();
@@ -716,7 +716,7 @@ namespace Couchbase.Lite
                     });
                 });
 
-                var success = doneSignal.Await(TimeSpan.FromSeconds(300));
+                var success = doneSignal.Wait(TimeSpan.FromSeconds(300));
                 Assert.IsTrue(success);
 
                 stopwatch.Stop();

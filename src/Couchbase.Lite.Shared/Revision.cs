@@ -41,13 +41,10 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
+
 using Couchbase.Lite.Internal;
+using Sharpen;
 
 namespace Couchbase.Lite 
 {
@@ -59,73 +56,32 @@ namespace Couchbase.Lite
     /// </summary>
     public abstract class Revision 
     {
-    
-    #region Constructors
+        #region Properties
 
-        /// <summary>
-        /// Convenience constructor
-        /// </summary>
-        protected internal Revision() : this(null) { }
-
-        /// <summary>
-        /// Default Constructor
-        /// </summary>
-        /// <param name="document">The document that owns this revision</param>
-        protected internal Revision(Document document)
-        {
-            Document = document;
-        }
-
-    #endregion
-
-    #region Non-public Members
-
-        internal virtual Int64 Sequence { get; private set; }
-
-        internal IDictionary<String, Object> GetAttachmentMetadata()
-        {
-            return GetProperty("_attachments").AsDictionary<string,object>();
-        }
-
-
-    #endregion
-
-    #region Instance Members
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Document"/> that this <see cref="Couchbase.Lite.Revision"/> belongs to.
         /// </summary>
-        /// <value>The <see cref="Couchbase.Lite.Document"/> that this <see cref="Couchbase.Lite.Revision"/> belongs to</value>
         public virtual Document Document { get; protected set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.Revision"/>'s 
         /// <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
-        /// <value>The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.Revision"/>'s 
-        /// <see cref="Couchbase.Lite.Document"/>.</value>
         public Database Database { get { return Document.Database; } }
-
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.Revision"/>'s id.
-        /// </summary>
-        /// <value>The <see cref="Couchbase.Lite.Revision"/>'s id.</value>
-        public abstract String Id { get; }
 
         /// <summary>
         /// Gets if the <see cref="Couchbase.Lite.Revision"/> marks the deletion of its <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
-        /// <value><c>true</c> if the <see cref="Couchbase.Lite.Revision"/> marks the deletion; otherwise, <c>false</c>.</value>
-        public virtual Boolean IsDeletion {
+        public virtual bool IsDeletion {
             get {
-                var deleted = GetProperty("_deleted");
-                if (deleted == null)
-                {
-                    return false;
-                }
-                var deletedBool = (Boolean)deleted;
-                return deletedBool;
+                return ExtensionMethods.CastOrDefault<bool>(GetProperty("_deleted"));
             }
         }
+
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Revision"/>'s id.
+        /// </summary>
+        public abstract string Id { get; }
 
         /// <summary>
         /// Does this revision mark the deletion or removal (from available channels) of its document?
@@ -133,16 +89,9 @@ namespace Couchbase.Lite
         /// </summary>
         public bool IsGone
         {
-            get 
-            {
-                var wasRemovedFromChannel = false;
-                var removed = GetProperty("_removed");
-                if (removed != null)
-                {
-                    var removedBoolean = (bool)removed;
-                    wasRemovedFromChannel = removedBoolean;
-                }
-                return IsDeletion || wasRemovedFromChannel;
+            get {
+                var removed = ExtensionMethods.CastOrDefault<bool>(GetProperty("_removed"));
+                return IsDeletion || removed;
             }
         }
 
@@ -152,14 +101,14 @@ namespace Couchbase.Lite
         /// Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
         /// </remarks>
         /// <value>The properties of the <see cref="Couchbase.Lite.Revision"/>.</value>
-        public abstract IDictionary<String, Object> Properties { get; }
+        public abstract IDictionary<string, object> Properties { get; }
 
         /// <summary>
         /// Gets the properties of the <see cref="Couchbase.Lite.Revision"/>. 
         /// without any properties with keys prefixed with '_' (which contain Couchbase Lite data).
         /// </summary>
         /// <value>The properties of the <see cref="Couchbase.Lite.Revision"/>.</value>
-        public virtual IDictionary<String, Object> UserProperties { 
+        public virtual IDictionary<string, object> UserProperties { 
             get {
                 var result = new Dictionary<String, Object>();
                 foreach (string key in Properties.Keys) {
@@ -175,14 +124,12 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
-        /// <value>The parent <see cref="Couchbase.Lite.Revision"/>.</value>
         public abstract SavedRevision Parent { get; }
 
         /// <summary>
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>'s id.
         /// </summary>
-        /// <value>The parent <see cref="Couchbase.Lite.Revision"/>'s id.</value>
-        public abstract String ParentId { get; }
+        public abstract string ParentId { get; }
 
         /// <summary>Returns the history of this document as an array of CBLRevisions, in forward order.</summary>
         /// <remarks>
@@ -198,15 +145,15 @@ namespace Couchbase.Lite
         /// <value>
         /// the names of all the <see cref="Couchbase.Lite.Attachment"/>s.
         /// </value>
-        public IEnumerable<String> AttachmentNames {
+        public IEnumerable<string> AttachmentNames {
             get {
                 var attachmentMetadata = GetAttachmentMetadata();
                 var result = new List<String>();
 
-                if (attachmentMetadata != null)
-                {
-                    Collections.AddAll(result, attachmentMetadata.Keys);
+                if (attachmentMetadata != null) {
+                    result.AddRange(attachmentMetadata.Keys);
                 }
+
                 return result;
             }
         }
@@ -221,18 +168,43 @@ namespace Couchbase.Lite
 
                 foreach (var attachmentName in AttachmentNames)
                 {
-                    result.AddItem(GetAttachment(attachmentName));
+                    result.Add(GetAttachment(attachmentName));
                 }
                 return result;
             } 
         }
+
+        internal virtual long Sequence { get; private set; }
+
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Convenience constructor
+        /// </summary>
+        protected internal Revision() : this(null) { }
+
+        /// <summary>
+        /// Default Constructor
+        /// </summary>
+        /// <param name="document">The document that owns this revision</param>
+        protected internal Revision(Document document)
+        {
+            Document = document;
+        }
+
+        #endregion
+
+        #region Public Members
 
         /// <summary>
         /// Returns the value of the property with the specified key.
         /// </summary>
         /// <returns>The value of the property with the specified key.</returns>
         /// <param name="key">The key of the property value to return.</param>
-        public Object GetProperty(String key) {
+        public object GetProperty(String key) 
+        {
             return Properties.Get(key);
         }
 
@@ -241,60 +213,56 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.Attachment"/> with the specified name if it exists, otherwise null.</returns>
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
-        public Attachment GetAttachment(String name) {
+        public Attachment GetAttachment(string name) 
+        {
             var attachmentsMetadata = GetAttachmentMetadata();
-            if (attachmentsMetadata == null)
-            {
+            if (attachmentsMetadata == null) {
                 return null;
             }
+
             var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
             return new Attachment(this, name, attachmentMetadata);
         }
 
-    #endregion
-    
-    #region Operator/Object Overloads
+        #endregion
 
-        /// <summary>
-        /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.Revision"/>.
-        /// </summary>
-        /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="Couchbase.Lite.Revision"/>.</param>
-        /// <returns><c>true</c> if the specified <see cref="System.Object"/> is equal to the current
-        /// <see cref="Couchbase.Lite.Revision"/>; otherwise, <c>false</c>.</returns>
+        #region Internal Methods
+
+        internal IDictionary<string, object> GetAttachmentMetadata()
+        {
+            return GetProperty("_attachments").AsDictionary<string,object>();
+        }
+
+        #endregion
+    
+        #region Overrides
+        #pragma warning disable 1591
+
         public override bool Equals(object obj)
         {
             var result = false;
-            if (obj is SavedRevision)
-            {
+            if (obj is SavedRevision) {
                 var other = (SavedRevision)obj;
-                if (Document.Id.Equals(other.Document.Id) && Id.Equals(other.Id))
-                {
+                if (Document.Id.Equals(other.Document.Id) && Id.Equals(other.Id)) {
                     result = true;
                 }
             }
+
             return result;
         }
 
-        /// <summary>
-        /// Serves as a hash function for a <see cref="Couchbase.Lite.Revision"/> object.
-        /// </summary>
-        /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a
-        /// hash table.</returns>
         public override int GetHashCode()
         {
             return Document.Id.GetHashCode() ^ Id.GetHashCode();
         }
 
-        /// <summary>
-        /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Revision"/>.
-        /// </summary>
-        /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Revision"/>.</returns>
         public override string ToString()
         {
             return "{" + Document.Id + " #" + Id + (IsDeletion ? "DEL" : String.Empty) + "}";
         }
 
-    #endregion
+        #pragma warning restore 1591
+        #endregion
     }
 }
 

@@ -137,7 +137,7 @@ namespace Couchbase.Lite
                 return false;
             }
             
-			return Arrays.Equals(Bytes, oBlobKey.Bytes);
+            return Bytes.SequenceEqual(oBlobKey.Bytes);
         }
 
         public override int GetHashCode()

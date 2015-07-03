@@ -307,7 +307,7 @@ namespace Couchbase.Lite
         public void SetAttachment(String name, String contentType, Uri contentUrl) {
             try {
                 byte[] inputBytes = null;
-                using(var inputStream = contentUrl.OpenConnection().GetInputStream()) {
+                using(var inputStream = HttpWebRequest.Create(contentUrl).GetResponse().GetResponseStream()) {
                     var length = inputStream.Length;
                     inputBytes = inputStream.ReadAllBytes();
                 }

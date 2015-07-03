@@ -344,34 +344,45 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var file = new FilePath(Path);
-            var fileJournal = new FilePath(Path + "-journal");
-            var fileWal = new FilePath(Path + "-wal");
-            var fileShm = new FilePath(Path + "-shm");
+            var file = Path;
+            var fileJournal = Path + "-journal";
+            var fileWal = Path + "-wal";
+            var fileShm = Path + "-shm";
 
-            var deleteStatus = file.Delete();
+            bool deleteStatus = true;
+            try {
+                File.Delete(file);
             
-            if (fileJournal.Exists()){
-                deleteStatus &= fileJournal.Delete();
-            }
-            if (fileWal.Exists()) {
-                deleteStatus &= fileWal.Delete();
-            }
-            if (fileShm.Exists()) {
-                deleteStatus &= fileShm.Delete();
+                if (File.Exists(fileJournal)) {
+                    File.Delete(fileJournal);
+                }
+                if (File.Exists(fileWal)) {
+                    File.Delete(fileWal);
+                }
+                if (File.Exists(fileShm)) {
+                    File.Delete(fileShm);
+                }
+            } catch(Exception) {
+                deleteStatus = false;
             }
 
             //recursively delete attachments path
-            var attachmentsFile = new FilePath(AttachmentStorePath);
-            var deleteAttachmentStatus = FileDirUtils.DeleteRecursive(attachmentsFile);
+            bool deleteAttachmentStatus = true;
+            try {
+                if(Directory.Exists(AttachmentStorePath)) {
+                    Directory.Delete(AttachmentStorePath, true);
+                }
+            } catch(Exception) {
+                deleteAttachmentStatus = false;
+            }
 
             if (!deleteStatus) {
-                Log.W(TAG, "Error deleting the SQLite database file at {0}", file.GetAbsolutePath());
+                Log.W(TAG, "Error deleting the SQLite database file at {0}", file);
                 throw new CouchbaseLiteException("Was not able to delete the database file", StatusCode.InternalServerError);
             }
 
             if (!deleteAttachmentStatus) {
-                Log.W(TAG, "Error deleting the attachment files file at {0}", attachmentsFile.GetAbsolutePath());
+                Log.W(TAG, "Error deleting the attachment files file at {0}", AttachmentStorePath);
                 throw new CouchbaseLiteException("Was not able to delete the attachments files", StatusCode.InternalServerError);
             }
         }
@@ -748,7 +759,7 @@ namespace Couchbase.Lite
 
         internal bool Exists()
         {
-            return new FilePath(Path).Exists();
+            return File.Exists(Path);
         }
 
         internal static string MakeLocalDocumentId(string documentId)
@@ -904,7 +915,7 @@ namespace Couchbase.Lite
             var strings = new List<String>();
             foreach (var obj in objects)
             {
-                strings.AddItem(obj != null ? obj.ToString() : null);
+                strings.Add(obj != null ? obj.ToString() : null);
             }
             return JoinQuoted(strings);
         }
@@ -1100,7 +1111,7 @@ namespace Couchbase.Lite
                         }
                     }
                     lastRevNo = revNo;
-                    suffixes.AddItem(suffix);
+                    suffixes.Add(suffix);
                 }
                 else {
                     start = -1;
@@ -1113,7 +1124,7 @@ namespace Couchbase.Lite
                 // we failed to build sequence, just stuff all the revs in list
                 suffixes = new List<string>();
                 foreach (RevisionInternal rev_1 in history) {
-                    suffixes.AddItem(rev_1.GetRevId());
+                    suffixes.Add(rev_1.GetRevId());
                 }
             }
             else {
@@ -1141,7 +1152,8 @@ namespace Couchbase.Lite
             var start = Convert.ToInt64(revisions.Get("start"));
             for (var i = 0; i < revIDs.Count; i++) {
                 var revID = revIDs[i];
-                revIDs.Set(i, Sharpen.Extensions.ToString(start--) + "-" + revID);
+                revIDs[i] = start + "-" + revID;
+                start--;
             }
 
             return revIDs;
@@ -1351,31 +1363,25 @@ namespace Couchbase.Lite
         internal Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
         {
             var digest = (string)attachmentDict.Get("digest");
-            if (digest == null)
-            {
+            if (digest == null) {
                 return null;
             }
+
             string path = null;
             var pending = PendingAttachmentsByDigest.Get(digest);
-            if (pending != null)
-            {
+            if (pending != null) {
                 path = pending.FilePath;
-            }
-            else
-            {
+            } else {
                 // If it's an installed attachment, ask the blob-store for it:
                 var key = new BlobKey(digest);
                 path = Attachments.PathForKey(key);
             }
+
             Uri retval = null;
-            try
-            {
-                retval = new FilePath(path).ToURI().ToURL();
+            if (!Uri.TryCreate(path, UriKind.RelativeOrAbsolute, out retval)) {
+                return null;
             }
-            catch (UriFormatException)
-            {
-            }
-            //NOOP: retval will be null
+
             return retval;
         }
 
@@ -1513,7 +1519,7 @@ namespace Couchbase.Lite
                 byte[] fileData = null;
                 try
                 {
-                    var inputStream = fileURL.OpenConnection().GetInputStream();
+                    var inputStream = HttpWebRequest.Create(fileURL).GetResponse().GetResponseStream();
                     var os = new MemoryStream();
                     inputStream.CopyTo(os);
                     fileData = os.ToArray();
@@ -1559,7 +1565,7 @@ namespace Couchbase.Lite
                 AttachmentInternal attachment = null;
                 try {
                     attachment = new AttachmentInternal(name, attachInfo);
-                } catch(CouchbaseLiteException e) {
+                } catch(CouchbaseLiteException) {
                     return null;
                 }
 

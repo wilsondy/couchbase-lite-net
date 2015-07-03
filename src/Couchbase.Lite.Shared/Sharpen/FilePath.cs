@@ -161,7 +161,7 @@ namespace Sharpen
                 file = Path.Combine (str, prefix + Interlocked.Increment (ref tempCounter) + suffix);
             } while (File.Exists (file));
             
-            new FileOutputStream (file).Close ();
+            File.Open (file, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite).Close();
             return new FilePath (file);
         }
 
@@ -244,29 +244,6 @@ namespace Sharpen
         public long Length ()
         {
             return FileHelper.Instance.Length (this);
-        }
-
-        public string[] List ()
-        {
-            return List (null);
-        }
-
-        public string[] List (FilenameFilter filter)
-        {
-            try {
-                if (IsFile ())
-                    return null;
-                List<string> list = new List<string> ();
-                foreach (string filePth in Directory.GetFileSystemEntries (path)) {
-                    string fileName = Path.GetFileName (filePth);
-                    if ((filter == null) || filter.Accept (this, fileName)) {
-                        list.Add (fileName);
-                    }
-                }
-                return list.ToArray ();
-            } catch {
-                return null;
-            }
         }
 
         public FilePath[] ListFiles ()

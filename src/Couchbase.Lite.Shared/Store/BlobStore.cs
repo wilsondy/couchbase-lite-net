@@ -67,10 +67,12 @@ namespace Couchbase.Lite
         public BlobStore(string path)
         {
             this.path = path;
-            FilePath directory = new FilePath(path);
-            directory.Mkdirs();
-            if (!directory.IsDirectory()) {
-                throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", directory));
+            if (!Directory.Exists(path)) {
+                Directory.CreateDirectory(path);
+            }
+
+            if (!Directory.Exists(path)) {
+                throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", path));
             }
         }
 
@@ -123,14 +125,14 @@ namespace Couchbase.Lite
 
         public string PathForKey(BlobKey key)
         {
-            return path + FilePath.separator + key + FileExtension;
+            return path + Path.DirectorySeparatorChar + key + FileExtension;
         }
 
         public long GetSizeOfBlob(BlobKey key)
         {
-            string path = PathForKey(key);
-            FilePath file = new FilePath(path);
-            return file.Length();
+            string keyPath = PathForKey(key);
+            var info = new FileInfo(keyPath);
+            return info.Exists ? info.Length : 0;
         }
 
         public bool GetKeyForFilename(BlobKey outKey, string filename)
@@ -152,24 +154,16 @@ namespace Couchbase.Lite
             }
 
             string keyPath = PathForKey(key);
-            FilePath file = new FilePath(keyPath);
-            byte[] result = null;
-            try {
-                result = GetBytesFromFile(file);
-            } catch (IOException e) {
-                Log.E(Database.TAG, "Error reading file", e);
-            }
-            return result;
+            return File.ReadAllBytes(keyPath);
         }
 
         public Stream BlobStreamForKey(BlobKey key)
         {
             var keyPath = PathForKey(key);
             Log.D(Database.TAG, "Blob Path : " + keyPath);
-            var file = new FilePath(keyPath);
-            if (file.CanRead()) {
+            if (File.Exists(keyPath) && (File.GetAttributes (keyPath) & FileAttributes.Offline) == 0) {
                 try {
-                    return new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+                    return new FileStream(keyPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
                 }
                 catch (FileNotFoundException e) {
                     Log.E(Database.TAG, "Unexpected file not found in blob store", e);
@@ -188,7 +182,7 @@ namespace Couchbase.Lite
             FilePath tmp = null;
             try {
                 tmp = FilePath.CreateTempFile(TmpFilePrefix, TmpFileExtension, new FilePath(this.path));
-                FileOutputStream fos = new FileOutputStream(tmp);
+                var fos = File.Open (tmp.GetAbsolutePath(), FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
                 byte[] buffer = new byte[65536];
                 int lenRead = ((InputStream)inputStream).Read(buffer);
                 while (lenRead > 0)  {
@@ -229,10 +223,10 @@ namespace Couchbase.Lite
                 return true;
             }
 
-            FileOutputStream fos = null;
+            FileStream fos = null;
             try {
-                fos = new FileOutputStream(file);
-                fos.Write(data);
+                fos = File.Open (keyPath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+                fos.Write(data, 0, data.Length);
             } catch (FileNotFoundException e) {
                 Log.E(Database.TAG, "Error opening file for output", e);
                 return false;
@@ -290,7 +284,7 @@ namespace Couchbase.Lite
 
                 BlobKey attachmentKey = new BlobKey();
                 GetKeyForFilename(attachmentKey, attachment.GetPath());
-                result.AddItem(attachmentKey);
+                result.Add(attachmentKey);
             }
 
             return result;

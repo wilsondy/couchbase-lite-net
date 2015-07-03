@@ -72,33 +72,6 @@ using System;
 namespace Sharpen
 {
 
-    internal class CharacterCodingException : Exception
-    {
-    }
-       
-
-    internal class EOFException : Exception
-    {
-        public EOFException ()
-        {
-        }
-
-        public EOFException (string msg) : base(msg)
-        {
-        }
-    }
-
-    internal class ExecutionException : Exception
-    {
-        public ExecutionException (Exception inner): base ("Execution failed", inner)
-        {
-        }
-    }
-
-    internal class MissingResourceException : Exception
-    {
-    }
-
     internal class NoSuchAlgorithmException : Exception
     {
     }

@@ -137,7 +137,7 @@ namespace Couchbase.Lite
         private void PushDocumentToSyncGateway(string docId, string docJson)
         {
             var url = new Uri(string.Format("{0}/{1}", GetReplicationURL(), docId));
-            var doneSignal = new CountDownLatch(1);
+            var doneSignal = new CountdownEvent(1);
             Task.Factory.StartNew(() =>
             {
                 HttpClient httpclient = null;
@@ -162,10 +162,10 @@ namespace Couchbase.Lite
                 {
                     httpclient.Dispose();
                 }
-                doneSignal.CountDown();
+                doneSignal.Signal();
             });
 
-            var success = doneSignal.Await(TimeSpan.FromSeconds(10));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
         }
 

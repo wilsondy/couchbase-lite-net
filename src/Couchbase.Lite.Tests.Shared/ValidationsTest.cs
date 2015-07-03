@@ -100,7 +100,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(StatusCode.Created, status.Code);
 
             // PUT an invalid update:
-            Sharpen.Collections.Remove(props, "towel");
+            props.Remove("towel");
             rev.SetProperties(props);
             validationCalled = false;
             rev = database.PutRevision(rev, rev.GetRevId(), false, status);

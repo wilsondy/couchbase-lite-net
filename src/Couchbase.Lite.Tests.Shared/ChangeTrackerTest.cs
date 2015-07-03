@@ -87,10 +87,10 @@ namespace Couchbase.Lite
 
             public ChangeTrackerReceivedChangeDelegate ReceivedChangeDelegate { get; set; }
 
-            private CountDownLatch stoppedSignal;
-            private CountDownLatch changedSignal;
+            private CountdownEvent stoppedSignal;
+            private CountdownEvent changedSignal;
 
-            public ChangeTrackerTestClient(CountDownLatch stoppedSignal, CountDownLatch changedSignal)
+            public ChangeTrackerTestClient(CountdownEvent stoppedSignal, CountdownEvent changedSignal)
             {
                 this.stoppedSignal = stoppedSignal;
                 this.changedSignal = changedSignal;
@@ -106,7 +106,7 @@ namespace Couchbase.Lite
 
                 if (stoppedSignal != null)
                 {
-                    stoppedSignal.CountDown();
+                    stoppedSignal.Signal();
                 }
             }
 
@@ -119,7 +119,7 @@ namespace Couchbase.Lite
 
                 if (changedSignal != null)
                 {
-                    changedSignal.CountDown();
+                    changedSignal.Signal();
                 }
             }
 
@@ -169,8 +169,8 @@ namespace Couchbase.Lite
 
         private void ChangeTrackerTestWithMode(ChangeTrackerMode mode)
         {
-            var changeTrackerFinishedSignal = new CountDownLatch(1);
-            var changeReceivedSignal = new CountDownLatch(1);
+            var changeTrackerFinishedSignal = new CountdownEvent(1);
+            var changeReceivedSignal = new CountdownEvent(1);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, changeReceivedSignal);
 
             client.ReceivedChangeDelegate = (IDictionary<string, object> change) =>
@@ -196,18 +196,18 @@ namespace Couchbase.Lite
             changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
-            var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
+            var success = changeReceivedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
             changeTracker.Stop();
 
-            success = changeTrackerFinishedSignal.Await(TimeSpan.FromSeconds(30));
+            success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
         }
 
         private void TestChangeTrackerBackoff(MockHttpClientFactory httpClientFactory)
         {
-            var changeTrackerFinishedSignal = new CountDownLatch(1);
+            var changeTrackerFinishedSignal = new CountdownEvent(1);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, null);
             client.HttpClientFactory = httpClientFactory;
 
@@ -247,7 +247,7 @@ namespace Couchbase.Lite
 
             changeTracker.Stop();
 
-            var success = changeTrackerFinishedSignal.Await(TimeSpan.FromSeconds(30));
+            var success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
         }
 
@@ -268,8 +268,8 @@ namespace Couchbase.Lite
             string statusMessage,
             Int32 numExpectedChangeCallbacks) 
         {
-            var changeTrackerFinishedSignal = new CountDownLatch(1);
-            var changeReceivedSignal = new CountDownLatch(numExpectedChangeCallbacks);
+            var changeTrackerFinishedSignal = new CountdownEvent(1);
+            var changeReceivedSignal = new CountdownEvent(numExpectedChangeCallbacks);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, changeReceivedSignal);
 
             MockHttpRequestHandler.HttpResponseDelegate sentinal = RunChangeTrackerTransientErrorDefaultResponder();
@@ -299,12 +299,12 @@ namespace Couchbase.Lite
             changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
-            var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
+            var success = changeReceivedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
             changeTracker.Stop();
 
-            success = changeTrackerFinishedSignal.Await(TimeSpan.FromSeconds(30));
+            success = changeTrackerFinishedSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
         }
 
@@ -400,8 +400,8 @@ namespace Couchbase.Lite
                 .LongPoll, 0, false, null);
 
             var docIds = new List<string>();
-            docIds.AddItem("doc1");
-            docIds.AddItem("doc2");
+            docIds.Add("doc1");
+            docIds.Add("doc2");
             changeTracker.SetDocIDs(docIds);
 
             var docIdsJson = "[\"doc1\",\"doc2\"]";

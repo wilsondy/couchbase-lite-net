@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Util
                 throw new ArgumentNullException("key");
             }
 
-            string query = uri.GetQuery();
+            string query = uri.Query;
             if (query == null) {
                 return null;
             }

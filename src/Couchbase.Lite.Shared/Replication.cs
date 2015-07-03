@@ -174,7 +174,7 @@ namespace Couchbase.Lite
             requests = new HashSet<HttpClient>();
 
             // FIXME: Refactor to visitor pattern.
-            if (RemoteUrl.GetQuery() != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.GetQuery()))
+            if (RemoteUrl.Query != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.Query))
             {
                 var uri = new Uri(remote.ToString());
                 var personaAssertion = URIUtils.GetQueryParameter(uri, PersonaAuthorizer.QueryParameter);
@@ -196,7 +196,7 @@ namespace Couchbase.Lite
 
                     try
                     {
-                        remoteWithQueryRemoved = new UriBuilder(remote.Scheme, remote.GetHost(), remote.Port, remote.AbsolutePath).Uri;
+                        remoteWithQueryRemoved = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
                     }
                     catch (UriFormatException e)
                     {
@@ -211,7 +211,7 @@ namespace Couchbase.Lite
                 // communicating with sync gw / couchdb
                 try
                 {
-                    RemoteUrl = new UriBuilder(remote.Scheme, remote.GetHost(), remote.Port, remote.AbsolutePath).Uri;
+                    RemoteUrl = new UriBuilder(remote.Scheme, remote.Host, remote.Port, remote.AbsolutePath).Uri;
                 }
                 catch (UriFormatException e)
                 {
@@ -1200,7 +1200,7 @@ namespace Couchbase.Lite
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300)
                         {
-                            Log.E(Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode()));
+                            Log.E(Tag, "Got error " + status.GetStatusCode());
                             Log.E(Tag, "Request was for: " + message);
                             Log.E(Tag, "Status reason: " + response.ReasonPhrase);
                             error = new WebException(response.ReasonPhrase);
@@ -1785,7 +1785,7 @@ namespace Couchbase.Lite
         public IEnumerable<String> Channels {
             get
             {
-                if (FilterParams == null || FilterParams.IsEmpty())
+                if (FilterParams == null || FilterParams.Count == 0)
                 {
                     return new List<string>();
                 }
@@ -2050,7 +2050,7 @@ namespace Couchbase.Lite
                 Expires = expirationDate,
                 Secure = secure,
                 HttpOnly = httpOnly,
-                Domain = RemoteUrl.GetHost()
+                Domain = RemoteUrl.Host
             };
 
             cookie.Path = !string.IsNullOrEmpty(path) 
