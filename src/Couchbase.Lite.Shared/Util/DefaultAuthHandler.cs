@@ -48,6 +48,7 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using System.Net;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -95,19 +96,23 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
-            if (Authenticator != null && response.StatusCode == HttpStatusCode.Unauthorized 
-                && !response.RequestMessage.Headers.Contains("Authorization")) {
-                //Challenge received for the first time
-                var newRequest = new HttpRequestMessage(response.RequestMessage.Method, response.RequestMessage.RequestUri);
-                foreach (var header in response.RequestMessage.Headers) {
-                    newRequest.Headers.Add(header.Key, header.Value);
-                }
+            if (Authenticator != null && response.StatusCode == HttpStatusCode.Unauthorized) {
+                //Challenge received
+                var retryCount = Int32.Parse(response.RequestMessage.Headers.GetValues("CBL-RetryCount").ElementAt(0));
+                if (retryCount < 5) {
+                    var newRequest = new HttpRequestMessage(response.RequestMessage.Method, response.RequestMessage.RequestUri);
+                    foreach (var header in response.RequestMessage.Headers) {
+                        newRequest.Headers.Add(header.Key, header.Value);
+                    }
 
-                newRequest.Content = response.RequestMessage.Content;
-                var challengeResponse = Authenticator.ResponseFromChallenge(response);
-                if (challengeResponse != null) {
-                    newRequest.Headers.Add("Authorization", challengeResponse);
-                    return ProcessResponse(SendAsync(newRequest, cancellationToken).Result, cancellationToken);
+                    newRequest.Content = response.RequestMessage.Content;
+                    var challengeResponse = Authenticator.ResponseFromChallenge(response);
+                    if (challengeResponse != null) {
+                        response.Dispose();
+                        newRequest.Headers.Remove("Authorization");
+                        newRequest.Headers.Add("Authorization", challengeResponse);
+                        response = SendAsync(newRequest, cancellationToken).Result;
+                    }
                 }
             }
 
@@ -124,11 +129,19 @@ namespace Couchbase.Lite.Replicator
         /// <exception cref="System.IO.IOException"></exception>
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request.Content != null) {
+            if (request.Headers.Contains("CBL-RetryCount")) {
+                var retryCount = Int32.Parse(request.Headers.GetValues("CBL-RetryCount").ElementAt(0));
+                request.Headers.Remove("CBL-RetryCount");
+                request.Headers.Add("CBL-RetryCount", (retryCount + 1).ToString());
+            } else {
+                request.Headers.Add("CBL-RetryCount", "0");
+            }
+
+            /*if (request.Content != null) {
                 var mre = new ManualResetEvent(false);
                 request.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
                 mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
-            }
+            }*/
 
             return request;
         }

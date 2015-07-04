@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 
 using Sharpen;
 
@@ -40,6 +41,7 @@ namespace Couchbase.Lite.Auth
         private int _nc;
         private readonly string _username;
         private readonly string _password;
+        private object _locker = new object();
 
         #endregion
 
@@ -64,16 +66,19 @@ namespace Couchbase.Lite.Auth
         public string ResponseFromChallenge(HttpResponseMessage message)
         {
             var challenge = message.Headers.GetValues("WWW-Authenticate").First();
-            _components = DigestCalculator.ParseIntoComponents(challenge);
-            if (_components == null) {
-                return null;
+            lock (_locker) {
+                _components = DigestCalculator.ParseIntoComponents(challenge);
+                if (_components == null) {
+                    return null;
+                }
+
+                _components["username"] = _username;
+                _components["password"] = _password;
+                _components["uri"] = message.RequestMessage.RequestUri.PathAndQuery;
+                _components["method"] = message.RequestMessage.Method.ToString();
+                _components["cnonce"] = Misc.CreateGUID();
             }
 
-            _components["username"] = _username;
-            _components["password"] = _password;
-            _components["uri"] = message.RequestMessage.RequestUri.PathAndQuery;
-            _components["method"] = message.RequestMessage.Method.ToString();
-            _components["cnonce"] = Misc.CreateGUID();
             return String.Format("{0} {1}", Scheme, UserInfo);
         }
 
@@ -104,16 +109,18 @@ namespace Couchbase.Lite.Auth
         {
             get
             {
-                if (_components == null) {
-                    return null;
-                }
+                lock (_locker) {
+                    if (_components == null) {
+                        return null;
+                    }
 
-                _components["nc"] = (++_nc).ToString();
-                var response = DigestCalculator.Calculate(_components);
-                return String.Format("username=\"{0}\", realm=\"{1}\", nonce=\"{2}\", uri=\"{3}\", " +
+                    var nextNc = Interlocked.Increment(ref _nc);
+                    var response = DigestCalculator.Calculate(_components, nextNc);
+                    return String.Format("username=\"{0}\", realm=\"{1}\", nonce=\"{2}\", uri=\"{3}\", " +
                     "qop={4}, nc={5}, cnonce=\"{6}\", response=\"{7}\", opaque=\"0\"", _username,
-                    _components.Get("realm"), _components.Get("nonce"), _components.Get("uri"), _components.Get("qop"),
-                    _nc, _components.Get("cnonce"), response);
+                        _components.Get("realm"), _components.Get("nonce"), _components.Get("uri"), _components.Get("qop"),
+                        nextNc, _components.Get("cnonce"), response);
+                }
             }
         }
 

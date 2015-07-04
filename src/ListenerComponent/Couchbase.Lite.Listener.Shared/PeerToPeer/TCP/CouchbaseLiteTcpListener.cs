@@ -116,6 +116,7 @@ namespace Couchbase.Lite.Listener.Tcp
             _listener.GetContextAsync().ContinueWith(t => ProcessContext(t.Result));
             if (RequiresAuth && !PerformAuthorization(context)) {
                 Log.D(TAG, "Authorization failed for {0}", context.Request.Url.PathAndQuery);
+                context.Response.AddHeader("Server", "Couchbase Lite " + Manager.VersionString);
                 RespondUnauthorized(context);
                 return;
             }

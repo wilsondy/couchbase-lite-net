@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Auth
             return components;
         }
 
-        public static string Calculate(IDictionary<string, string> components)
+        public static string Calculate(IDictionary<string, string> components, int nc)
         {
             MessageDigest ha1md5 = MessageDigest.GetInstance("md5");
             MessageDigest ha2md5 = MessageDigest.GetInstance("md5");
@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Auth
             ha2md5.Update(Encoding.UTF8.GetBytes(ha2Str));
             var ha2 = BitConverter.ToString(ha2md5.Digest()).Replace("-", "").ToLowerInvariant();
 
-            var responseStr = String.Format("{0}:{1}:{2}:{3}:{4}:{5}", ha1, components.Get("nonce"), components.Get("nc"), 
+            var responseStr = String.Format("{0}:{1}:{2}:{3}:{4}:{5}", ha1, components.Get("nonce"), nc, 
                 components.Get("cnonce"), components.Get("qop"), ha2);
             responsemd5.Update(Encoding.UTF8.GetBytes(responseStr));
             return BitConverter.ToString(responsemd5.Digest()).Replace("-", "").ToLowerInvariant();

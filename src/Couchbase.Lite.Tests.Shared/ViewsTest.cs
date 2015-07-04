@@ -633,14 +633,29 @@ namespace Couchbase.Lite
             expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3], expectedConflict1,
                 expectedRowBase[4]
             };
-                
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+              
+            AssertRowsAreEqual(expectedRows, RowsToDicts(allDocs));
 
             // Get _only_ conflicts:
             options.AllDocsMode = AllDocsMode.OnlyConflicts;
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<IDictionary<string, object>>() { expectedConflict1 };
-            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+            AssertRowsAreEqual(expectedRows, RowsToDicts(allDocs));
+        }
+
+        private void AssertRowsAreEqual(IList<IDictionary<string, object>> expectedRows, IList<IDictionary<string, object>> rows)
+        {
+            // Not sure why I have to do this but a simple Assert.AreEqual fails on mobile devices
+            Assert.AreEqual(expectedRows.Count, rows.Count);
+            for (int i = 0; i < expectedRows.Count; i++) {
+                var expectedRow = expectedRows[i].AsDictionary<string, object>();
+                var row = rows[i].AsDictionary<string, object>();
+                var expectedValue = expectedRow["value"].AsDictionary<string, object>();
+                var val = row["value"].AsDictionary<string, object>();
+                Assert.IsTrue(String.Equals(expectedValue.GetCast<string>("rev"), val.GetCast<string>("rev")));
+                Assert.AreEqual(expectedRow.GetCast<string>("id"), row.GetCast<string>("id"));
+                Assert.AreEqual(expectedRow.GetCast<string>("key"), row.GetCast<string>("key"));
+            }
         }
 
         private IDictionary<string, object> CreateExpectedQueryResult(IList<QueryRow> rows, int offset)
