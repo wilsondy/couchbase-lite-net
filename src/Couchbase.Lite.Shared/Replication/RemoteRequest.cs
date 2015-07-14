@@ -46,6 +46,7 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using System.Threading.Tasks;
+using System.IO.Compression;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -56,6 +57,8 @@ namespace Couchbase.Lite.Replicator
         private const int MaxRetries = 2;
 
         private const int RetryDelayMs = 10 * 1000;
+
+        private bool _shouldCompress;
 
         protected internal TaskFactory workExecutor;
 
@@ -106,6 +109,11 @@ namespace Couchbase.Lite.Replicator
                 ? new CancellationTokenSource() 
                 : CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
             Log.V(Tag, "RemoteRequest created, url: {0}", url);
+        }
+
+        public void CompressBody()
+        {
+            _shouldCompress = true;
         }
 
         public virtual void Run()
@@ -193,23 +201,26 @@ namespace Couchbase.Lite.Replicator
         protected internal void SetBody(HttpRequestMessage request)
         {
             // set body if appropriate
-            if (body != null)
-            {
+            if (body != null) {
                 byte[] bodyBytes = null;
-                try
-                {
+                try {
                     bodyBytes = Manager.GetObjectMapper().WriteValueAsBytes(body).ToArray();
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     Log.E(Tag, "Error serializing body of request", e);
                 }
-                var entity = new ByteArrayContent(bodyBytes);
-                entity.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+
+                HttpContent entity = null;
+                if (bodyBytes.Length >= 100 && _shouldCompress) {
+                    entity = new ByteArrayContent(bodyBytes);
+                } else {
+                    var ms = new MemoryStream(bodyBytes);
+                    entity = new StreamContent(new GZipStream(ms, CompressionMode.Compress));
+                    entity.Headers.ContentEncoding.Add("gzip");
+                }
+
                 request.Content = entity;
-            }
-            else
-            {
+            } else {
                 Log.W(Tag + ".SetBody", "No body found for this request to {0}", request.RequestUri);
             }
         }

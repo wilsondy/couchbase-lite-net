@@ -124,7 +124,7 @@ namespace Couchbase.Lite.Listener
                     }
 
                     if(sendMultipart) {
-                        response.MultipartWriter = db.MultipartWriterForRev(rev, "multipart/related");
+                        response.MultipartWriter = MultipartWriterForRev(db, rev, "multipart/related");
                     } else {
                         response.JsonBody = rev.GetBody();
                     }
@@ -464,6 +464,37 @@ namespace Couchbase.Lite.Listener
         #endregion
 
         #region Private Methods
+
+        private static MultipartWriter MultipartWriterForRev(Database db, RevisionInternal rev, string contentType)
+        {
+            MultipartWriter writer = new MultipartWriter(contentType, null);
+            writer.AddData(rev.GetJson());
+            var attachments = rev.GetAttachments();
+            foreach (var attachmentName in attachments.Keys) {
+                var attachment = attachments[attachmentName].AsDictionary<string, object>();
+                if (attachment.GetCast<bool>("follows")) {
+                    var disposition = String.Format("attachment; filename={0}", Misc.QuoteString(attachmentName));
+                    writer.SetNextPartHeaders(new Dictionary<string, string> {
+                        { "Content-Disposition", disposition }
+                    });
+
+                    var status = new Status();
+                    var attachmentObj = db.AttachmentForDict(attachment, attachmentName, status);
+                    if (attachmentObj == null) {
+                        return null;
+                    }
+
+                    var fileUri = attachmentObj.ContentUrl;
+                    if (fileUri != null) {
+                        writer.AddFileUrl(fileUri);
+                    } else {
+                        writer.AddStream(attachmentObj.ContentStream);
+                    }
+                }
+            }
+
+            return writer;
+        }
 
         // Factors out the logic of opening the database and reading the document body from the HTTP request
         // and performs the specified logic on the body received in the request, barring any problems

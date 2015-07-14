@@ -56,6 +56,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using Couchbase.Lite.Replicator;
+using System.IO.Compression;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -583,6 +584,58 @@ namespace Couchbase.Lite
             }
         }
 
+        internal MultipartWriter MultipartWriterForRev(RevisionInternal rev)
+        {
+            MultipartWriter bodyStream = null;
+            var attachments = rev.GetAttachments();
+            var keys = attachments.Keys.ToList();
+            keys.Sort(StringComparer.InvariantCultureIgnoreCase);
+            foreach (var attachmentName in keys) {
+                var attachment = attachments[attachmentName].AsDictionary<string, object>();
+                if (attachment.GetCast<bool>("follows")) {
+                    if (bodyStream == null) {
+                        bodyStream = new MultipartWriter("multipart/related", null);
+                        bodyStream.SetNextPartHeaders(new Dictionary<string, string> {
+                            { "Content-Type", "application/json" }
+                        });
+
+                        IEnumerable<byte> json;
+                        try {
+                            json = Manager.GetObjectMapper().WriteValueAsBytes(rev.GetProperties(), true);
+                        } catch(Exception e) {
+                            Log.W(Tag, "Error creating JSON", e);
+                            return null;
+                        }
+
+                        if (CheckServerCompatVersion("0.92")) {
+                            bodyStream.AddGZippedData(json);
+                        } else {
+                            bodyStream.AddData(json);
+                        }
+                    }
+
+                    var disposition = String.Format("attachment; filename={0}", Misc.QuoteString(attachmentName));
+                    var contentType = attachment.GetCast<string>("type");
+                    var contentEncoding = attachment.GetCast<string>("encoding");
+                    bodyStream.SetNextPartHeaders(new Dictionary<string, string> {
+                        { "Content-Disposition", disposition },
+                        { "Content-Type", contentType },
+                        { "Content-Encoding", contentEncoding }
+                    });
+
+                    var status = new Status();
+                    var attachmentObj = LocalDatabase.AttachmentForDict(attachment, attachmentName, status);
+                    if (attachmentObj == null) {
+                        return null;
+                    }
+
+                    bodyStream.AddStream(attachmentObj.ContentStream, attachmentObj.Length);
+                }
+            }
+
+            return bodyStream;
+        }
+
         internal void DatabaseClosing()
         {
 			lastSequenceChanged = true; // force save the sequence
@@ -1044,8 +1097,14 @@ namespace Couchbase.Lite
             if (body != null)
             {
                 var bytes = mapper.WriteValueAsBytes(body).ToArray();
-                var byteContent = new ByteArrayContent(bytes);
-                message.Content = byteContent;
+                var ms = new MemoryStream(bytes);
+                if (bytes.Length >= 100 && CheckServerCompatVersion("0.92")) {
+                    message.Headers.Add("Content-Encoding", "gzip");
+                    message.Content = new StreamContent(new GZipStream(ms, CompressionMode.Compress));
+                } else {
+                    message.Content = new StreamContent(ms);
+                }
+
                 message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             }
 
@@ -1160,7 +1219,9 @@ namespace Couchbase.Lite
                 var url = new Uri(urlStr);
 
                 var message = new HttpRequestMessage(method, url);
-                message.Headers.Add("Accept", "*/*");
+                message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("multipart/related"));
+                message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                message.Headers.Add("X-Accept-Part-Encoding", "gzip");
                 AddRequestHeaders(message);
 
                 var client = clientFactory.GetHttpClient(false);

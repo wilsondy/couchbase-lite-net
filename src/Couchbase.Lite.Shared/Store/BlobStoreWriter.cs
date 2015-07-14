@@ -89,23 +89,18 @@ namespace Couchbase.Lite
         public BlobStoreWriter(BlobStore store)
         {
             this.store = store;
-            try
-            {
+            try {
                 sha1Digest = MessageDigest.GetInstance("SHA-1");
                 sha1Digest.Reset();
                 md5Digest = MessageDigest.GetInstance("MD5");
                 md5Digest.Reset();
-            }
-            catch (NoSuchAlgorithmException e)
-            {
+            } catch (NoSuchAlgorithmException e) {
                 throw new InvalidOperationException("Could not get an instance of SHA-1 or MD5." , e);
             }
-            try
-            {
+
+            try {
                 OpenTempFile();
-            }
-            catch (FileNotFoundException e)
-            {
+            } catch (FileNotFoundException e) {
                 throw new InvalidOperationException("Unable to open temporary file.", e);
             }
         }

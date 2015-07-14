@@ -40,16 +40,16 @@
 // and limitations under the License.
 //
 
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Sharpen;
-using System.Collections.Generic;
-using System.IO;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.IO;
 using System.IO.Compression;
+using System.Linq;
+
+using Couchbase.Lite;
 using Couchbase.Lite.Util;
+using Sharpen;
 
 namespace Couchbase.Lite.Internal
 {
@@ -61,8 +61,15 @@ namespace Couchbase.Lite.Internal
         
     internal sealed class AttachmentInternal
     {
+
+        #region Variables
+
         private IEnumerable<byte> _data;
         private const string TAG = "AttachmentInternal";
+
+        #endregion
+
+        #region Properties
 
         public long Length { get; set; }
 
@@ -179,6 +186,10 @@ namespace Couchbase.Lite.Internal
             }
         }
 
+        #endregion
+
+        #region Constructors
+
         public AttachmentInternal(string name, string contentType)
         {
             Debug.Assert(name != null);
@@ -238,6 +249,10 @@ namespace Couchbase.Lite.Internal
                 throw new CouchbaseLiteException(StatusCode.BadAttachment);
             }
         }
+
+        #endregion
+
+        #region Public Methods
             
         public IDictionary<string, object> AsStubDictionary()
         {
@@ -272,5 +287,7 @@ namespace Couchbase.Lite.Internal
                 Length = length;
             }
         }
+
+        #endregion
     }
 }

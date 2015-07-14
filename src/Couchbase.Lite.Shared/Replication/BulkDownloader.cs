@@ -47,6 +47,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Threading;
+using System.Net.Http.Headers;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -75,27 +76,24 @@ namespace Couchbase.Lite.Replicator
         public override void Run()
         {
             HttpClient httpClient = null;
-            try 
-            {
+            try {
                 httpClient = clientFactory.GetHttpClient(false);
-                requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
+
+                requestMessage.Headers.Add("Content-Type", "application/json");
+                requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("multipart/related"));
+                requestMessage.Headers.Add("X-Accept-Part-Encoding", "gzip");
 
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
-                if (authHeader != null)
-                {
+                if (authHeader != null) {
                     httpClient.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                //TODO: implement gzip support for server response see issue #172
-                //request.addHeader("X-Accept-Part-Encoding", "gzip");
+
                 AddRequestHeaders(requestMessage);
                 SetBody(requestMessage);
                 ExecuteRequest(httpClient, requestMessage);
-            }
-            finally
-            {
-                if (httpClient != null) 
-                {
+            } finally {
+                if (httpClient != null) {
                     httpClient.Dispose();
                 }
             }
@@ -103,7 +101,7 @@ namespace Couchbase.Lite.Replicator
 
         private string Description()
         {
-            return this.GetType().FullName + "[" + url.AbsolutePath + "]";
+            return GetType().FullName + "[" + url.AbsolutePath + "]";
         }
 
         protected override internal void ExecuteRequest(HttpClient httpClient, HttpRequestMessage request)

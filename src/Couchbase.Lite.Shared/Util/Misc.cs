@@ -123,7 +123,36 @@ namespace Couchbase.Lite
 
         public static string UnquoteString(string param)
         {
-            return param.Replace("\"", string.Empty);
+            if (!param.StartsWith(@"\""")) {
+                return param;
+            }
+
+            if (!param.EndsWith(@"\""") || param.Length < 2) {
+                return null;
+            }
+
+            if (!param.Contains(@"\")) {
+                return param;
+            }
+
+            var retVal = new StringBuilder(param);
+            retVal.Remove(0, 1);
+            retVal.Remove(retVal.Length - 1, 1);
+            retVal.Replace(@"\\", @"\");
+            retVal.Replace(@"""", @"\""");
+
+            return retVal.ToString();
+        }
+
+        public static string QuoteString(string param)
+        {
+            var retVal = new StringBuilder(param);
+            retVal.Replace(@"\", @"\\");
+            retVal.Replace(@"""", @"\""");
+            retVal.Insert(0, @"""");
+            retVal.Append(@"""");
+
+            return retVal.ToString();
         }
 
         public static bool IsTransientNetworkError(Exception error)

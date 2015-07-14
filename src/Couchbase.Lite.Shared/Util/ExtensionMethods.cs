@@ -59,6 +59,24 @@ namespace Couchbase.Lite
 
     internal static class ExtensionMethods
     {
+        public static NestedType ChainGet<NestedType>(this IDictionary<string, object> root, params string[] keys) where NestedType : class
+        {
+            IDictionary<string, object> current = root;
+            foreach (var key in keys.Take(root.Count - 1)) {
+                var tmp = current.Get(key);
+                if (tmp == null) {
+                    return null;
+                }
+
+                current = tmp.AsDictionary<string, object>();
+                if (current == null) {
+                    return null;
+                }
+            }
+
+            return current.GetCast<NestedType>(keys.Last());
+        }
+
         public static IEnumerable<byte> Decompress(this IEnumerable<byte> compressedData)
         {
 
