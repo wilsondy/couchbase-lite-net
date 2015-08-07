@@ -29,12 +29,12 @@ using Couchbase.Lite.Util;
 namespace Couchbase.Lite
 {
     //Eventually split this into another assembly
-    internal class NewtonsoftJsonSerializer : IJsonSerializer
+    public class NewtonsoftJsonSerializer : IJsonSerializer
     {
         
         #region Constants
 
-        private static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
+        public static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         };
 
